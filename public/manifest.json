@@ -1,0 +1,15 @@
+{
+  "name": "Checklist Mover",
+  "details": "Move or copy checklist items between cards seamlessly in Trello.",
+  "html": "connector.html",
+  "icon": {
+    "url": "powerup-icon.svg"
+  },
+  "author": "Antigravity",
+  "capabilities": [
+    "card-buttons"
+  ],
+  "privacy": "https://trello.com",
+  "support": "https://trello.com"
+}
+
