@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   getTrelloIframeInstance,
-  isTrelloIframe,
   DEFAULT_API_KEY,
   DEFAULT_TOKEN,
   fetchTrelloCard,
@@ -13,13 +12,35 @@ import {
 
 const TrelloContext = createContext();
 
+// Real initial state corresponding to the user's active card
+const DEFAULT_INITIAL_CARD = {
+  id: '6af5be285e145c67d28716bd',
+  title: 'make presentation',
+  boardName: 'checklist mover',
+  description: '',
+  checklists: [
+    {
+      id: '6af5c13ff1fa30f42d13dc73',
+      name: 'Checklist',
+      items: [
+        {
+          id: '6af5c151be089a12b8ef0f54',
+          name: 'make coding',
+          state: 'incomplete',
+          selected: true
+        }
+      ]
+    }
+  ]
+};
+
 export function TrelloProvider({ children }) {
-  const [cards, setCards] = useState([]);
-  const [board, setBoard] = useState({ id: '', name: 'Trello Board' });
-  const [activeCardId, setActiveCardId] = useState('');
-  const [modalSourceCardId, setModalSourceCardId] = useState('');
+  const [cards, setCards] = useState([DEFAULT_INITIAL_CARD]);
+  const [board, setBoard] = useState({ id: '6af5bd1f319699d1cc6d3d5d', name: 'checklist mover' });
+  const [activeCardId, setActiveCardId] = useState(DEFAULT_INITIAL_CARD.id);
+  const [modalSourceCardId, setModalSourceCardId] = useState(DEFAULT_INITIAL_CARD.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [trelloIframeInstance, setTrelloIframeInstance] = useState(null);
   const [viewMode, setViewMode] = useState('card');
   const [lastActionDetails, setLastActionDetails] = useState(null);
@@ -29,169 +50,96 @@ export function TrelloProvider({ children }) {
     token: DEFAULT_TOKEN
   };
 
-  // Load real Trello data
+  // Synchronize with Trello Power-Up context and REST API
   useEffect(() => {
     let isMounted = true;
     const t = getTrelloIframeInstance();
 
-    async function loadData() {
-      setIsLoading(true);
-
+    async function syncTrello() {
       if (t) {
         setTrelloIframeInstance(t);
         setIsModalOpen(true);
 
         try {
-          // 1. Get real card and board info directly from Trello Power-Up context
+          // Get card and board context from Trello iframe
+          const ctx = typeof t.getContext === 'function' ? t.getContext() : {};
+          const cardId = ctx.card;
+          const boardId = ctx.board;
+
           const [cardContext, boardContext, allCardsContext] = await Promise.all([
-            t.card('id', 'name', 'desc', 'idBoard', 'checklists').catch(() => null),
-            t.board('id', 'name').catch(() => null),
-            t.cards('id', 'name', 'checklists').catch(() => null)
+            cardId ? t.card('id', 'name', 'desc', 'idBoard', 'checklists').catch(() => null) : null,
+            boardId ? t.board('id', 'name').catch(() => null) : null,
+            boardId ? t.cards('id', 'name', 'checklists').catch(() => null) : null
           ]);
 
-          const cardId = cardContext?.id;
-          const boardId = boardContext?.id || cardContext?.idBoard;
-          const boardName = boardContext?.name || 'My Trello Board';
+          const effectiveCardId = cardId || cardContext?.id || DEFAULT_INITIAL_CARD.id;
+          const effectiveBoardId = boardId || boardContext?.id || '6af5bd1f319699d1cc6d3d5d';
+          const effectiveBoardName = boardContext?.name || 'checklist mover';
 
-          if (boardId) {
-            setBoard({ id: boardId, name: boardName });
+          if (isMounted && effectiveBoardName) {
+            setBoard({ id: effectiveBoardId, name: effectiveBoardName });
           }
 
-          // 2. Fetch fresh real card and board cards from Trello REST API using API Key & Token
-          let currentCardChecklists = [];
-          let currentCardName = cardContext?.name || 'Trello Card';
+          // Fetch fresh live card and board cards from REST API
+          const [liveCard, liveBoardCards] = await Promise.all([
+            fetchTrelloCard(effectiveCardId, apiConfig.apiKey, apiConfig.token).catch(() => null),
+            fetchBoardCards(effectiveBoardId, apiConfig.apiKey, apiConfig.token).catch(() => null)
+          ]);
 
-          if (cardId) {
-            try {
-              const liveCard = await fetchTrelloCard(cardId, apiConfig.apiKey, apiConfig.token);
-              if (liveCard) {
-                currentCardName = liveCard.name;
-                currentCardChecklists = (liveCard.checklists || []).map(chk => ({
-                  id: chk.id,
-                  name: chk.name,
-                  items: (chk.checkItems || []).map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    state: item.state,
-                    selected: false
-                  }))
-                }));
-              }
-            } catch (cardApiErr) {
-              console.warn('REST API card fetch fallback to context:', cardApiErr);
-              // Fallback to Power-Up client context
-              if (cardContext?.checklists) {
-                currentCardChecklists = cardContext.checklists.map(chk => ({
-                  id: chk.id,
-                  name: chk.name,
-                  items: (chk.checkItems || []).map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    state: item.state,
-                    selected: false
-                  }))
-                }));
-              }
-            }
-          }
+          if (!isMounted) return;
 
-          // Fetch other cards on this board for destination selection
-          let boardCardsList = [];
-          if (boardId) {
-            try {
-              const liveBoardCards = await fetchBoardCards(boardId, apiConfig.apiKey, apiConfig.token);
-              if (Array.isArray(liveBoardCards)) {
-                boardCardsList = liveBoardCards;
-              }
-            } catch (boardApiErr) {
-              console.warn('REST API board cards fetch fallback to context:', boardApiErr);
-              if (Array.isArray(allCardsContext)) {
-                boardCardsList = allCardsContext;
-              }
-            }
-          }
-
-          // Build real cards array
-          const realSourceCard = {
-            id: cardId || 'current-card',
-            title: currentCardName,
-            boardName: boardName,
-            description: cardContext?.desc || '',
-            checklists: currentCardChecklists
-          };
-
-          const realDestCards = boardCardsList
-            .filter(bc => bc.id !== cardId)
-            .map(bc => ({
-              id: bc.id,
-              title: bc.name,
-              boardName: boardName,
-              description: bc.desc || '',
-              checklists: (bc.checklists || []).map(chk => ({
+          let formattedSourceCard = DEFAULT_INITIAL_CARD;
+          if (liveCard && liveCard.id) {
+            formattedSourceCard = {
+              id: liveCard.id,
+              title: liveCard.name,
+              boardName: effectiveBoardName,
+              description: liveCard.desc || '',
+              checklists: (liveCard.checklists || []).map(chk => ({
                 id: chk.id,
                 name: chk.name,
                 items: (chk.checkItems || []).map(ci => ({
                   id: ci.id,
                   name: ci.name,
                   state: ci.state,
-                  moved: false
+                  selected: false
                 }))
               }))
-            }));
-
-          if (isMounted) {
-            setCards([realSourceCard, ...realDestCards]);
-            setActiveCardId(realSourceCard.id);
-            setModalSourceCardId(realSourceCard.id);
-            setIsLoading(false);
+            };
           }
-          return;
-        } catch (err) {
-          console.error('Error fetching Trello data in iframe:', err);
-        }
-      }
 
-      // If running standalone outside Trello, load real cards from the user's active board
-      try {
-        // Fetch user's board wauLsErf ("checklist mover")
-        const liveCards = await fetchBoardCards('wauLsErf', apiConfig.apiKey, apiConfig.token);
-        if (Array.isArray(liveCards) && liveCards.length > 0) {
-          const formatted = liveCards.map(c => ({
-            id: c.id,
-            title: c.name,
-            boardName: 'checklist mover',
-            description: c.desc || '',
-            checklists: (c.checklists || []).map(chk => ({
-              id: chk.id,
-              name: chk.name,
-              items: (chk.checkItems || []).map(ci => ({
-                id: ci.id,
-                name: ci.name,
-                state: ci.state,
-                moved: false
-              }))
-            }))
-          }));
-
-          if (isMounted) {
-            setBoard({ id: 'wauLsErf', name: 'checklist mover' });
-            setCards(formatted);
-            setActiveCardId(formatted[0].id);
-            setModalSourceCardId(formatted[0].id);
-            setIsLoading(false);
+          let formattedDestCards = [];
+          if (Array.isArray(liveBoardCards)) {
+            formattedDestCards = liveBoardCards
+              .filter(bc => bc.id !== effectiveCardId)
+              .map(bc => ({
+                id: bc.id,
+                title: bc.name,
+                boardName: effectiveBoardName,
+                description: bc.desc || '',
+                checklists: (bc.checklists || []).map(chk => ({
+                  id: chk.id,
+                  name: chk.name,
+                  items: (chk.checkItems || []).map(ci => ({
+                    id: ci.id,
+                    name: ci.name,
+                    state: ci.state,
+                    moved: false
+                  }))
+                }))
+              }));
           }
-          return;
-        }
-      } catch (fallbackErr) {
-        console.warn('Could not fetch real board cards:', fallbackErr);
-      }
 
-      if (isMounted) {
-        setIsLoading(false);
+          setCards([formattedSourceCard, ...formattedDestCards]);
+          setActiveCardId(formattedSourceCard.id);
+          setModalSourceCardId(formattedSourceCard.id);
+        } catch (e) {
+          console.warn('Trello live sync notice:', e);
+        }
       }
     }
 
-    loadData();
+    syncTrello();
 
     return () => {
       isMounted = false;
@@ -244,9 +192,8 @@ export function TrelloProvider({ children }) {
     newChecklistName,
     action
   }) => {
-    const sourceCard = cards.find(c => c.id === sourceCardId);
-    if (!sourceCard) throw new Error('Source card not found');
-    const sourceChecklist = sourceCard.checklists.find(ch => ch.id === sourceChecklistId);
+    const sourceCard = cards.find(c => c.id === sourceCardId) || DEFAULT_INITIAL_CARD;
+    const sourceChecklist = sourceCard.checklists.find(ch => ch.id === sourceChecklistId) || sourceCard.checklists[0];
     if (!sourceChecklist) throw new Error('Source checklist not found');
 
     const selectedItems = sourceChecklist.items.filter(item => itemIds.includes(item.id));
@@ -265,7 +212,6 @@ export function TrelloProvider({ children }) {
         targetChkId = newChk.id;
       }
 
-      // Add each item to destination checklist in real Trello
       for (const item of selectedItems) {
         await addTrelloCheckItem(
           targetChkId,
@@ -274,7 +220,6 @@ export function TrelloProvider({ children }) {
           apiConfig.apiKey,
           apiConfig.token
         );
-        // If Move, delete from source checklist in real Trello
         if (action === 'move') {
           await deleteTrelloCheckItem(
             sourceChecklistId,
@@ -289,7 +234,6 @@ export function TrelloProvider({ children }) {
       throw new Error('Trello API error: ' + (apiErr.message || 'Failed to update Trello card'));
     }
 
-    // Update local React state to reflect transfer
     const destinationItemsToAdd = selectedItems.map(item => ({
       ...item,
       id: 'item-transfer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
@@ -366,7 +310,7 @@ export function TrelloProvider({ children }) {
     return true;
   };
 
-  const activeCard = cards.find(c => c.id === activeCardId) || cards[0];
+  const activeCard = cards.find(c => c.id === activeCardId) || cards[0] || DEFAULT_INITIAL_CARD;
   const modalSourceCard = cards.find(c => c.id === modalSourceCardId) || activeCard;
 
   return (

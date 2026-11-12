@@ -482,8 +482,8 @@ export default function ChecklistMoverModal() {
                 <div className="card-link-item">
                   <div className="card-window-icon tiny"></div>
                   <div className="card-link-texts">
-                    <span className="card-link-title">{modalSourceCard.title}</span>
-                    <span className="card-link-subtitle">{currentChecklist.name}</span>
+                    <span className="card-link-title">{modalSourceCard?.title || 'Source Card'}</span>
+                    <span className="card-link-subtitle">{currentChecklist?.name || 'Checklist'}</span>
                   </div>
                 </div>
               </div>
@@ -514,7 +514,7 @@ export default function ChecklistMoverModal() {
                 <div className="card-link-item">
                   <div className="card-window-icon tiny"></div>
                   <div className="card-link-texts">
-                    <span className="card-link-title">{chosenDestCard.title}</span>
+                    <span className="card-link-title">{chosenDestCard?.title || 'Destination Card'}</span>
                     <span className="card-link-subtitle">{destChecklistDisplayName}</span>
                   </div>
                 </div>
@@ -675,8 +675,8 @@ export default function ChecklistMoverModal() {
                   <div className="path-card-info">
                     <div className="card-window-icon tiny"></div>
                     <div>
-                      <div className="path-card-title">{modalSourceCard.title}</div>
-                      <div className="path-chk-title">{currentChecklist.name}</div>
+                      <div className="path-card-title">{modalSourceCard?.title || 'Source Card'}</div>
+                      <div className="path-chk-title">{currentChecklist?.name || 'Checklist'}</div>
                     </div>
                   </div>
                 </div>
@@ -690,7 +690,7 @@ export default function ChecklistMoverModal() {
                   <div className="path-card-info">
                     <div className="card-window-icon tiny"></div>
                     <div>
-                      <div className="path-card-title">{chosenDestCard.title}</div>
+                      <div className="path-card-title">{chosenDestCard?.title || 'Destination Card'}</div>
                       <div className="path-chk-title">{destChecklistDisplayName}</div>
                     </div>
                   </div>
