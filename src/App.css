@@ -712,7 +712,7 @@
   background: #FFFFFF;
   border-radius: 12px;
   width: 100%;
-  max-width: 530px;
+  max-width: 760px;
   box-shadow: 0 20px 45px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
   display: flex;
   flex-direction: column;
@@ -1929,21 +1929,54 @@
   background: #DFE1E6;
 }
 
-/* Standalone Iframe mode */
+/* Standalone Iframe mode (Trello Modal & Direct Modal) */
 .trello-iframe-standalone {
+  width: 100%;
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: #FFFFFF;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
 .trello-iframe-standalone .modal-backdrop {
   position: static;
+  width: 100%;
+  max-width: 100%;
+  flex: 1;
   background: transparent;
   backdrop-filter: none;
-  padding: 0;
+  padding: 16px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
+
 .trello-iframe-standalone .modal-window {
   box-shadow: none;
-  max-width: 100%;
+  border-radius: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.trello-iframe-standalone .modal-header {
+  padding: 4px 0 16px;
+}
+
+.trello-iframe-standalone .stepper-container {
+  padding: 0 0 18px;
+}
+
+.trello-iframe-standalone .step-content {
+  padding: 0;
+  flex: 1;
+}
+
+.trello-iframe-standalone .checklist-items-scroll {
+  max-height: 280px;
 }

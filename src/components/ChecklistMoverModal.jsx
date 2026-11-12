@@ -224,9 +224,10 @@ export default function ChecklistMoverModal() {
                             color: '#172B4D',
                             cursor: 'pointer',
                             outline: 'none',
-                            padding: '3px 8px',
+                            padding: '4px 10px',
                             marginTop: '2px',
-                            maxWidth: '240px'
+                            width: '100%',
+                            maxWidth: '480px'
                           }}
                         >
                           {cards.map(c => {
