@@ -204,41 +204,28 @@ export default function ChecklistMoverModal() {
               <div className="step-content step-1">
                 {/* Source Card Box */}
                 <div className="source-card-badge-box">
-                  <div className="source-card-left" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="source-card-left">
                     <div className="card-symbol-box">
                       <div className="card-window-icon"></div>
                     </div>
-                    <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
-                      <div className="source-card-meta">Source Card (Select to change)</div>
+                    <div className="source-card-text-group">
+                      <div className="source-card-meta">Source Card</div>
                       {cards.length > 1 ? (
-                        <select
-                          className="source-card-dropdown"
-                          value={modalSourceCard?.id}
-                          onChange={(e) => changeSourceCard(e.target.value)}
-                          style={{
-                            background: '#FFFFFF',
-                            border: '1px solid #DFE1E6',
-                            borderRadius: '4px',
-                            fontWeight: 700,
-                            fontSize: '13px',
-                            color: '#172B4D',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            padding: '4px 10px',
-                            marginTop: '2px',
-                            width: '100%',
-                            maxWidth: '480px'
-                          }}
-                        >
-                          {cards.map(c => {
-                            const totalCardItems = c.checklists?.reduce((sum, ch) => sum + (ch.items?.length || 0), 0) || 0;
-                            return (
+                        <div className="source-card-select-wrapper">
+                          <select
+                            className="source-card-clean-select"
+                            value={modalSourceCard?.id}
+                            onChange={(e) => changeSourceCard(e.target.value)}
+                            title="Click to switch source card"
+                          >
+                            {cards.map(c => (
                               <option key={c.id} value={c.id}>
-                                {c.title} ({totalCardItems} items)
+                                {c.title}
                               </option>
-                            );
-                          })}
-                        </select>
+                            ))}
+                          </select>
+                          <ChevronDown size={14} className="source-clean-chevron" />
+                        </div>
                       ) : (
                         <div className="source-card-name">{modalSourceCard?.title || 'Current Card'}</div>
                       )}
