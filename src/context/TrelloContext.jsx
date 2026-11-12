@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_DATA } from '../services/initialData';
-import { getTrelloIframeInstance, isTrelloIframe } from '../services/trelloApi';
+import {
+  getTrelloIframeInstance,
+  DEFAULT_API_KEY,
+  DEFAULT_TOKEN,
+  fetchTrelloCard,
+  fetchBoardCards,
+  createTrelloChecklist,
+  addTrelloCheckItem,
+  deleteTrelloCheckItem
+} from '../services/trelloApi';
 
 const TrelloContext = createContext();
 
@@ -21,16 +30,19 @@ export function TrelloProvider({ children }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSourceCardId, setModalSourceCardId] = useState('card-source');
   const [trelloIframeInstance, setTrelloIframeInstance] = useState(null);
-  const [viewMode, setViewMode] = useState('card'); // 'card', 'board', 'modal-only'
+  const [viewMode, setViewMode] = useState('card');
   const [lastActionDetails, setLastActionDetails] = useState(null);
 
-  // Settings for real Trello API
+  // Default credentials provided by the user
   const [apiConfig, setApiConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('trello_api_config');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return { apiKey: '', token: '' };
+    return {
+      apiKey: DEFAULT_API_KEY,
+      token: DEFAULT_TOKEN
+    };
   });
 
   useEffect(() => {
@@ -50,17 +62,81 @@ export function TrelloProvider({ children }) {
     const t = getTrelloIframeInstance();
     if (t) {
       setTrelloIframeInstance(t);
-      // Auto open modal when running in modal mode inside Trello
       setIsModalOpen(true);
-      // Fetch card info from Trello
-      t.card('all').then(card => {
-        if (card && card.id) {
-          // If we have live Trello card
-          console.log('Running inside Trello card:', card);
+
+      // Fetch live board and card from Trello
+      Promise.all([
+        t.card('all').catch(() => null),
+        t.board('all').catch(() => null)
+      ]).then(async ([liveCard, liveBoard]) => {
+        if (liveCard && liveCard.id) {
+          try {
+            // Load live card details from Trello API
+            const cardData = await fetchTrelloCard(liveCard.id, apiConfig.apiKey, apiConfig.token);
+            const boardCards = liveBoard?.id
+              ? await fetchBoardCards(liveBoard.id, apiConfig.apiKey, apiConfig.token)
+              : [];
+
+            if (cardData) {
+              const formattedSourceCard = {
+                id: cardData.id,
+                title: cardData.name,
+                listId: cardData.idList,
+                listName: 'In Progress',
+                boardName: liveBoard?.name || 'Trello Board',
+                description: cardData.desc || '',
+                checklists: (cardData.checklists || []).map(chk => ({
+                  id: chk.id,
+                  name: chk.name,
+                  items: (chk.checkItems || []).map(ci => ({
+                    id: ci.id,
+                    name: ci.name,
+                    state: ci.state,
+                    selected: false
+                  }))
+                }))
+              };
+
+              const formattedDestCards = boardCards
+                .filter(bc => bc.id !== cardData.id)
+                .map(bc => ({
+                  id: bc.id,
+                  title: bc.name,
+                  listId: bc.idList,
+                  listName: 'Board Card',
+                  boardName: liveBoard?.name || 'Trello Board',
+                  description: bc.desc || '',
+                  checklists: (bc.checklists || []).map(chk => ({
+                    id: chk.id,
+                    name: chk.name,
+                    items: (chk.checkItems || []).map(ci => ({
+                      id: ci.id,
+                      name: ci.name,
+                      state: ci.state,
+                      moved: false
+                    }))
+                  }))
+                }));
+
+              setData(prev => ({
+                ...prev,
+                board: {
+                  id: liveBoard?.id || prev.board.id,
+                  name: liveBoard?.name || prev.board.name
+                },
+                cards: [formattedSourceCard, ...formattedDestCards]
+              }));
+
+              setActiveCardId(cardData.id);
+              setModalSourceCardId(cardData.id);
+            }
+          } catch (apiErr) {
+            console.warn('Could not fetch live Trello card/board via REST:', apiErr);
+          }
         }
-      }).catch(err => console.log('Trello card fetch info:', err));
+      });
     }
-  }, []);
+  }, [apiConfig]);
 
   const resetData = () => {
     setData(JSON.parse(JSON.stringify(INITIAL_DATA)));
@@ -114,9 +190,8 @@ export function TrelloProvider({ children }) {
     destChecklistId,
     isNewChecklist,
     newChecklistName,
-    action // 'move' or 'copy'
+    action
   }) => {
-    // Collect the items to be moved/copied
     const sourceCard = data.cards.find(c => c.id === sourceCardId);
     if (!sourceCard) throw new Error('Source card not found');
     const sourceChecklist = sourceCard.checklists.find(ch => ch.id === sourceChecklistId);
@@ -125,7 +200,28 @@ export function TrelloProvider({ children }) {
     const selectedItems = sourceChecklist.items.filter(item => itemIds.includes(item.id));
     if (selectedItems.length === 0) throw new Error('No items selected');
 
-    // Create cloned items for destination
+    // If these are real Trello IDs (24 character hex), perform live API transfer
+    const isRealTrello = /^[0-9a-fA-F]{24}$/.test(destCardId);
+
+    if (isRealTrello && apiConfig.apiKey && apiConfig.token) {
+      try {
+        let targetChkId = destChecklistId;
+        if (isNewChecklist) {
+          const newChk = await createTrelloChecklist(destCardId, newChecklistName, apiConfig.apiKey, apiConfig.token);
+          targetChkId = newChk.id;
+        }
+
+        for (const item of selectedItems) {
+          await addTrelloCheckItem(targetChkId, item.name, item.state === 'complete', apiConfig.apiKey, apiConfig.token);
+          if (action === 'move') {
+            await deleteTrelloCheckItem(sourceChecklistId, item.id, apiConfig.apiKey, apiConfig.token);
+          }
+        }
+      } catch (err) {
+        console.warn('Real Trello API transfer error:', err);
+      }
+    }
+
     const destinationItemsToAdd = selectedItems.map(item => ({
       ...item,
       id: 'item-transfer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
@@ -137,7 +233,6 @@ export function TrelloProvider({ children }) {
       let targetChecklistTitle = newChecklistName;
 
       const updatedCards = prev.cards.map(card => {
-        // Handle source card removal if moving
         if (card.id === sourceCardId) {
           if (action === 'move') {
             return {
@@ -154,7 +249,6 @@ export function TrelloProvider({ children }) {
         }
         return card;
       }).map(card => {
-        // Handle destination card additions
         if (card.id === destCardId) {
           if (isNewChecklist) {
             const newChkId = 'chk-' + Date.now();
@@ -176,7 +270,6 @@ export function TrelloProvider({ children }) {
               checklists: card.checklists.map(chk => {
                 if (chk.id !== destChecklistId) return chk;
                 targetChecklistTitle = chk.name;
-                // Add moved items at top of checklist or matching screenshot
                 return {
                   ...chk,
                   items: [...destinationItemsToAdd, ...chk.items]
@@ -248,4 +341,3 @@ export function useTrello() {
   if (!context) throw new Error('useTrello must be used within TrelloProvider');
   return context;
 }
-
