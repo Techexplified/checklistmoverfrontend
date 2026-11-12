@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTrello } from '../context/TrelloContext';
 import Stepper from './Stepper';
 import { TransferIllustration, SuccessCelebration } from './Illustration';
@@ -29,6 +29,20 @@ export default function ChecklistMoverModal() {
   // Wizard state: 1: Select Items, 2: Destination, 3: Review, 4: Processing, 5: Success
   const [step, setStep] = useState(1);
   const { isLoading } = useTrello();
+
+  // Source card dropdown toggle
+  const [isSourceCardDropdownOpen, setIsSourceCardDropdownOpen] = useState(false);
+  const sourceCardDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sourceCardDropdownRef.current && !sourceCardDropdownRef.current.contains(event.target)) {
+        setIsSourceCardDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Step 1 state
   const availableChecklists = modalSourceCard?.checklists || [];
@@ -211,20 +225,47 @@ export default function ChecklistMoverModal() {
                     <div className="source-card-text-group">
                       <div className="source-card-meta">Source Card</div>
                       {cards.length > 1 ? (
-                        <div className="source-card-select-wrapper">
-                          <select
-                            className="source-card-clean-select"
-                            value={modalSourceCard?.id}
-                            onChange={(e) => changeSourceCard(e.target.value)}
+                        <div className="source-card-custom-dropdown" ref={sourceCardDropdownRef}>
+                          <button
+                            type="button"
+                            className="source-card-trigger-btn"
+                            onClick={() => setIsSourceCardDropdownOpen(!isSourceCardDropdownOpen)}
                             title="Click to switch source card"
                           >
-                            {cards.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.title}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown size={14} className="source-clean-chevron" />
+                            <span className="source-card-trigger-name">{modalSourceCard?.title || 'Current Card'}</span>
+                            <ChevronDown
+                              size={14}
+                              className={`source-clean-chevron ${isSourceCardDropdownOpen ? 'rotated' : ''}`}
+                            />
+                          </button>
+
+                          {isSourceCardDropdownOpen && (
+                            <div className="source-card-menu-popover">
+                              <div className="menu-popover-header">Switch Source Card</div>
+                              <div className="menu-popover-list">
+                                {cards.map(c => {
+                                  const isSelected = c.id === modalSourceCard?.id;
+                                  const totalItems = c.checklists?.reduce((sum, ch) => sum + (ch.items?.length || 0), 0) || 0;
+                                  return (
+                                    <div
+                                      key={c.id}
+                                      className={`menu-popover-item ${isSelected ? 'selected' : ''}`}
+                                      onClick={() => {
+                                        changeSourceCard(c.id);
+                                        setIsSourceCardDropdownOpen(false);
+                                      }}
+                                    >
+                                      <div className="popover-item-content">
+                                        <span className="popover-item-title">{c.title}</span>
+                                        <span className="popover-item-items-count">{totalItems} checklist items</span>
+                                      </div>
+                                      {isSelected && <Check size={14} className="popover-item-check" />}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="source-card-name">{modalSourceCard?.title || 'Current Card'}</div>

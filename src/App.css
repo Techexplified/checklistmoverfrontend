@@ -16,6 +16,27 @@
   --trello-amber-text: #92400E;
 }
 
+/* Universal Atlassian Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C1C7D0;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #97A0AF;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C1C7D0 transparent;
+}
+
 /* App container */
 .trello-app-container {
   min-height: 100vh;
@@ -924,47 +945,141 @@
   line-height: 1.3;
 }
 
-.source-card-select-wrapper {
+.source-card-custom-dropdown {
   position: relative;
   display: inline-flex;
-  align-items: center;
-  max-width: fit-content;
 }
 
-.source-card-clean-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+.source-card-trigger-btn {
   background: transparent;
   border: none;
-  padding: 0 18px 0 0;
+  padding: 0;
   margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  outline: none;
+  text-align: left;
+}
+
+.source-card-trigger-name {
   font-size: 14px;
   font-weight: 700;
   color: #172B4D;
-  cursor: pointer;
-  outline: none;
-  font-family: inherit;
   line-height: 1.3;
   transition: color 0.15s ease;
 }
 
-.source-card-clean-select:hover {
+.source-card-trigger-btn:hover .source-card-trigger-name {
   color: #0065FF;
 }
 
 .source-clean-chevron {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   color: #5E6C84;
-  pointer-events: none;
-  transition: color 0.15s ease;
+  transition: transform 0.2s ease, color 0.15s ease;
 }
 
-.source-card-select-wrapper:hover .source-clean-chevron {
+.source-clean-chevron.rotated {
+  transform: rotate(180deg);
   color: #0065FF;
+}
+
+.source-card-trigger-btn:hover .source-clean-chevron {
+  color: #0065FF;
+}
+
+/* Floating Custom Popover */
+.source-card-menu-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.18), 0 0 1px rgba(9, 30, 66, 0.3);
+  min-width: 260px;
+  max-width: 340px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: popoverFadeIn 0.15s ease-out;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-popover-header {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5E6C84;
+  background: #FAFBFC;
+  border-bottom: 1px solid #EBECF0;
+}
+
+.menu-popover-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.menu-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  gap: 8px;
+}
+
+.menu-popover-item:hover {
+  background: #F4F5F7;
+}
+
+.menu-popover-item.selected {
+  background: #EBF3FF;
+}
+
+.popover-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.popover-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #172B4D;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-popover-item.selected .popover-item-title {
+  color: #0065FF;
+}
+
+.popover-item-items-count {
+  font-size: 11px;
+  color: #6B778C;
+}
+
+.popover-item-check {
+  color: #0065FF;
+  flex-shrink: 0;
 }
 
 .board-badge {
