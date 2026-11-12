@@ -1387,17 +1387,17 @@ body::-webkit-scrollbar,
 .review-summary-card {
   border: 1px solid #DFE1E6;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: #FFFFFF;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .review-summary-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .review-summary-row.header-action-row {
@@ -1405,7 +1405,7 @@ body::-webkit-scrollbar,
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #F4F5F7;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .review-row-label {
@@ -1450,13 +1450,13 @@ body::-webkit-scrollbar,
 }
 
 .card-link-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #172B4D;
 }
 
 .card-link-subtitle {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #5E6C84;
 }
 
@@ -1465,7 +1465,10 @@ body::-webkit-scrollbar,
   padding-left: 4px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  max-height: 100px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .review-bullet-item {
@@ -1484,18 +1487,18 @@ body::-webkit-scrollbar,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 0;
+  padding: 1px 0;
 }
 
 /* Alert banners (Step 3) */
 .review-alert-banner {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .review-alert-banner.alert-warning {
@@ -1521,8 +1524,11 @@ body::-webkit-scrollbar,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 6px;
-  padding-top: 12px;
+  margin-top: auto;
+  padding-top: 8px;
+  padding-bottom: 2px;
+  background: #FFFFFF;
+  flex-shrink: 0;
 }
 
 .btn-secondary-link {
@@ -2126,12 +2132,11 @@ body::-webkit-scrollbar,
   flex: 1;
   background: transparent;
   backdrop-filter: none;
-  padding: 12px 24px 16px;
+  padding: 10px 24px 12px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: hidden !important;
-  scrollbar-width: none !important;
+  overflow: hidden;
 }
 
 .trello-iframe-standalone .modal-backdrop::-webkit-scrollbar {
@@ -2149,8 +2154,6 @@ body::-webkit-scrollbar,
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden !important;
-  scrollbar-width: none !important;
 }
 
 .trello-iframe-standalone .modal-window::-webkit-scrollbar {
@@ -2160,19 +2163,32 @@ body::-webkit-scrollbar,
 }
 
 .trello-iframe-standalone .modal-header {
-  padding: 2px 0 14px;
+  padding: 0 0 10px;
+  flex-shrink: 0;
 }
 
 .trello-iframe-standalone .stepper-container {
-  padding: 0 0 16px;
+  padding: 0 0 12px;
+  flex-shrink: 0;
 }
 
 .trello-iframe-standalone .step-content {
   padding: 0;
   flex: 1;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.trello-iframe-standalone .modal-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
+  background: #FFFFFF;
 }
 
 .trello-iframe-standalone .checklist-items-scroll {
-  max-height: 240px;
+  max-height: 220px;
 }
