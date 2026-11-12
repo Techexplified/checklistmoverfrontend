@@ -177,26 +177,37 @@ export default function ChecklistMoverModal() {
             </div>
 
             {/* Select Checklist dropdown */}
-            <div className="form-group">
-              <label className="form-label">Select Checklist</label>
-              <div className="custom-select-wrapper">
-                <select
-                  className="custom-select"
-                  value={selectedChecklistId}
-                  onChange={(e) => {
-                    setSelectedChecklistId(e.target.value);
-                    setSelectedItemIds([]);
-                  }}
-                >
-                  {availableChecklists.map(chk => (
-                    <option key={chk.id} value={chk.id}>
-                      {chk.name} ({chk.items.length} items)
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={18} className="select-arrow" />
+            {availableChecklists.length > 0 ? (
+              <div className="form-group">
+                <label className="form-label">Select Checklist</label>
+                <div className="custom-select-wrapper">
+                  <select
+                    className="custom-select"
+                    value={selectedChecklistId}
+                    onChange={(e) => {
+                      setSelectedChecklistId(e.target.value);
+                      setSelectedItemIds([]);
+                    }}
+                  >
+                    {availableChecklists.map(chk => (
+                      <option key={chk.id} value={chk.id}>
+                        {chk.name} ({chk.items?.length || 0} items)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={18} className="select-arrow" />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="review-alert-banner alert-info" style={{ marginTop: '8px' }}>
+                <div className="alert-icon-circle blue">
+                  <Info size={16} color="#0065FF" strokeWidth={2.5} />
+                </div>
+                <div className="alert-message-text">
+                  No checklists found on this card yet. Please add a checklist to this card in Trello first.
+                </div>
+              </div>
+            )}
 
             {/* Checklist Items Card */}
             <div className="checklist-selection-card">

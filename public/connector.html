@@ -7,7 +7,8 @@
 </head>
 <body>
   <script>
-    var ICON_URL = window.location.origin + '/powerup-icon.svg';
+    var BASE_URL = 'https://checklistmoverfrontend.vercel.app';
+    var ICON_URL = BASE_URL + '/powerup-icon.svg';
 
     window.TrelloPowerUp.initialize({
       'card-buttons': function(t, options) {
@@ -16,27 +17,29 @@
           text: 'Checklist Mover',
           callback: function(t) {
             return t.modal({
-              url: './index.html?trello=1',
+              url: BASE_URL + '/index.html?trello=1',
               title: 'Checklist Mover',
-              height: 600,
-              fullscreen: false,
-              actions: [{
-                icon: ICON_URL,
-                alt: 'Checklist Mover',
-                position: 'left'
-              }]
+              height: 620,
+              fullscreen: false
             });
           }
         }];
       },
-      'card-badges': function(t, options) {
-        return t.card('checklists')
-          .then(function(card) {
-            return [];
-          });
+      'board-buttons': function(t, options) {
+        return [{
+          icon: ICON_URL,
+          text: 'Checklist Mover',
+          callback: function(t) {
+            return t.modal({
+              url: BASE_URL + '/index.html?trello=1',
+              title: 'Checklist Mover',
+              height: 620,
+              fullscreen: false
+            });
+          }
+        }];
       }
     });
   </script>
 </body>
 </html>
-
