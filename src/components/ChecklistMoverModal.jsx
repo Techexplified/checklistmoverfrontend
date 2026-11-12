@@ -28,35 +28,54 @@ export default function ChecklistMoverModal() {
 
   // Wizard state: 1: Select Items, 2: Destination, 3: Review, 4: Processing, 5: Success
   const [step, setStep] = useState(1);
+  const { isLoading } = useTrello();
 
   // Step 1 state
-  const availableChecklists = modalSourceCard.checklists || [];
+  const availableChecklists = modalSourceCard?.checklists || [];
   const [selectedChecklistId, setSelectedChecklistId] = useState(
     availableChecklists[0]?.id || ''
   );
+
+  useEffect(() => {
+    if (availableChecklists.length > 0) {
+      if (!selectedChecklistId || !availableChecklists.some(c => c.id === selectedChecklistId)) {
+        setSelectedChecklistId(availableChecklists[0].id);
+      }
+    }
+  }, [availableChecklists]);
 
   const currentChecklist =
     availableChecklists.find(c => c.id === selectedChecklistId) || availableChecklists[0];
 
   const currentItems = currentChecklist?.items || [];
 
-  // Default selected items matching screenshot: item-1 and item-2
-  const [selectedItemIds, setSelectedItemIds] = useState(() => {
-    return currentItems.slice(0, 2).map(i => i.id);
-  });
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+
+  useEffect(() => {
+    if (currentItems.length > 0 && selectedItemIds.length === 0) {
+      // Auto-select first item or all if small
+      setSelectedItemIds(currentItems.map(i => i.id));
+    }
+  }, [currentItems]);
 
   // Step 2 state
   // Filter out the source card or allow destination card
-  const destinationCards = cards.filter(c => c.id !== modalSourceCard.id);
-  const defaultDestCard = destinationCards[0] || cards[0];
-  const [destCardId, setDestCardId] = useState(defaultDestCard?.id || '');
+  const destinationCards = cards.filter(c => c.id !== modalSourceCard?.id);
+  const availableDestCards = destinationCards.length > 0 ? destinationCards : (cards.length > 0 ? cards : [modalSourceCard]);
+  const [destCardId, setDestCardId] = useState(availableDestCards[0]?.id || '');
 
-  const chosenDestCard = cards.find(c => c.id === destCardId) || defaultDestCard;
+  useEffect(() => {
+    if (availableDestCards.length > 0 && (!destCardId || !availableDestCards.some(c => c.id === destCardId))) {
+      setDestCardId(availableDestCards[0].id);
+    }
+  }, [availableDestCards]);
+
+  const chosenDestCard = cards.find(c => c.id === destCardId) || availableDestCards[0] || modalSourceCard;
   const destChecklists = chosenDestCard?.checklists || [];
 
-  const [checklistMode, setChecklistMode] = useState('existing'); // 'existing' | 'new'
+  const [checklistMode, setChecklistMode] = useState(destChecklists.length > 0 ? 'existing' : 'new');
   const [destChecklistId, setDestChecklistId] = useState(destChecklists[0]?.id || '');
-  const [newChecklistName, setNewChecklistName] = useState('Development Tasks');
+  const [newChecklistName, setNewChecklistName] = useState('New Checklist');
   const [actionType, setActionType] = useState('move'); // 'move' | 'copy'
 
   // Step 4 (Processing) state
@@ -67,8 +86,10 @@ export default function ChecklistMoverModal() {
   useEffect(() => {
     if (chosenDestCard?.checklists?.length) {
       setDestChecklistId(chosenDestCard.checklists[0].id);
+    } else {
+      setChecklistMode('new');
     }
-  }, [destCardId]);
+  }, [destCardId, chosenDestCard]);
 
   // Handle Select All
   const areAllSelected = currentItems.length > 0 && selectedItemIds.length === currentItems.length;
@@ -156,25 +177,32 @@ export default function ChecklistMoverModal() {
         {/* Wizard Stepper */}
         <Stepper currentStep={step <= 3 ? step : 3} />
 
-        {/* STEP 1: SELECT ITEMS */}
-        {step === 1 && (
-          <div className="step-content step-1">
-            {/* Source Card Box */}
-            <div className="source-card-badge-box">
-              <div className="source-card-left">
-                <div className="card-symbol-box">
-                  <div className="card-window-icon"></div>
+        {isLoading ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <div className="spinner-circle blue" style={{ margin: '0 auto 12px', width: '32px', height: '32px', borderWidth: '3px' }}></div>
+            <p style={{ color: '#5E6C84', fontSize: '14px', fontWeight: 600 }}>Loading card data from Trello...</p>
+          </div>
+        ) : (
+          <>
+            {/* STEP 1: SELECT ITEMS */}
+            {step === 1 && (
+              <div className="step-content step-1">
+                {/* Source Card Box */}
+                <div className="source-card-badge-box">
+                  <div className="source-card-left">
+                    <div className="card-symbol-box">
+                      <div className="card-window-icon"></div>
+                    </div>
+                    <div>
+                      <div className="source-card-meta">Source Card</div>
+                      <div className="source-card-name">{modalSourceCard?.title || 'Current Card'}</div>
+                    </div>
+                  </div>
+                  <div className="board-badge">
+                    <BookOpen size={14} className="board-badge-icon" />
+                    <span>Board: {board.name}</span>
+                  </div>
                 </div>
-                <div>
-                  <div className="source-card-meta">Source Card</div>
-                  <div className="source-card-name">{modalSourceCard.title}</div>
-                </div>
-              </div>
-              <div className="board-badge">
-                <BookOpen size={14} className="board-badge-icon" />
-                <span>Board: {board.name}</span>
-              </div>
-            </div>
 
             {/* Select Checklist dropdown */}
             {availableChecklists.length > 0 ? (
@@ -286,9 +314,9 @@ export default function ChecklistMoverModal() {
                   value={destCardId}
                   onChange={(e) => setDestCardId(e.target.value)}
                 >
-                  {destinationCards.map(c => (
+                  {availableDestCards.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.title}
+                      {c.title} {c.id === modalSourceCard?.id ? '(Current Card)' : ''}
                     </option>
                   ))}
                 </select>
@@ -685,7 +713,7 @@ export default function ChecklistMoverModal() {
               <button
                 className="btn-outline-action"
                 onClick={() => {
-                  setActiveCardId(chosenDestCard.id);
+                  if (chosenDestCard?.id) setActiveCardId(chosenDestCard.id);
                   closeModal();
                 }}
               >
@@ -697,6 +725,8 @@ export default function ChecklistMoverModal() {
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
