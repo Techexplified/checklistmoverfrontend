@@ -310,6 +310,11 @@ export function TrelloProvider({ children }) {
     return true;
   };
 
+  const changeSourceCard = (cardId) => {
+    setModalSourceCardId(cardId);
+    setActiveCardId(cardId);
+  };
+
   const activeCard = cards.find(c => c.id === activeCardId) || cards[0] || DEFAULT_INITIAL_CARD;
   const modalSourceCard = cards.find(c => c.id === modalSourceCardId) || activeCard;
 
@@ -321,6 +326,9 @@ export function TrelloProvider({ children }) {
         activeCard,
         activeCardId,
         setActiveCardId,
+        modalSourceCardId,
+        setModalSourceCardId,
+        changeSourceCard,
         modalSourceCard,
         isModalOpen,
         isLoading,

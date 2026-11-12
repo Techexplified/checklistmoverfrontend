@@ -22,7 +22,7 @@ export default function ChecklistMoverModal() {
     modalSourceCard,
     closeModal,
     executeTransfer,
-    setActiveCardId,
+    changeSourceCard,
     board
   } = useTrello();
 
@@ -41,6 +41,8 @@ export default function ChecklistMoverModal() {
       if (!selectedChecklistId || !availableChecklists.some(c => c.id === selectedChecklistId)) {
         setSelectedChecklistId(availableChecklists[0].id);
       }
+    } else {
+      setSelectedChecklistId('');
     }
   }, [availableChecklists]);
 
@@ -51,12 +53,25 @@ export default function ChecklistMoverModal() {
 
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
+  // Auto select items when checklist or source card changes
   useEffect(() => {
-    if (currentItems.length > 0 && selectedItemIds.length === 0) {
-      // Auto-select first item or all if small
-      setSelectedItemIds(currentItems.map(i => i.id));
+    if (modalSourceCard?.id) {
+      const firstChecklist = modalSourceCard.checklists?.[0];
+      if (firstChecklist) {
+        setSelectedChecklistId(firstChecklist.id);
+        setSelectedItemIds((firstChecklist.items || []).map(i => i.id));
+      } else {
+        setSelectedChecklistId('');
+        setSelectedItemIds([]);
+      }
     }
-  }, [currentItems]);
+  }, [modalSourceCard?.id]);
+
+  useEffect(() => {
+    if (selectedChecklistId && currentChecklist) {
+      setSelectedItemIds((currentChecklist.items || []).map(i => i.id));
+    }
+  }, [selectedChecklistId]);
 
   // Step 2 state
   // Filter out the source card or allow destination card
@@ -199,7 +214,7 @@ export default function ChecklistMoverModal() {
                         <select
                           className="source-card-dropdown"
                           value={modalSourceCard?.id}
-                          onChange={(e) => setActiveCardId(e.target.value)}
+                          onChange={(e) => changeSourceCard(e.target.value)}
                           style={{
                             background: '#FFFFFF',
                             border: '1px solid #DFE1E6',
