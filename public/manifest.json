@@ -3,7 +3,7 @@
   "details": "Move or copy checklist items between cards seamlessly in Trello.",
   "html": "connector.html",
   "icon": {
-    "url": "powerup-icon.svg"
+    "url": "icon.png"
   },
   "author": "Antigravity",
   "capabilities": [
